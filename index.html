@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>午前2時の食堂</title>
+<style>
+body{background:#101014;color:#eee;font-family:sans-serif;margin:0;padding:18px}
+h1{color:#e5c18b;text-align:center}
+small{color:#aaa}
+section{background:#202026;border:1px solid #49434a;border-radius:12px;padding:15px;margin:12px 0}
+button{background:#b99b70;color:#151515;border:0;border-radius:8px;padding:12px;margin:4px;font-weight:bold}
+button:disabled{opacity:.4}
+#story{white-space:pre-line;line-height:1.8}
+</style>
+</head>
+<body>
+<h1>午前2時の食堂</h1>
+<p style="text-align:center">午前2時から午前5時まで営業</p>
+<section>
+<div id="stats"></div>
+</section>
+<section>
+<h2>来店客</h2>
+<div id="story"></div>
+<button onclick="next()">次のお客さん</button>
+</section>
+<section>
+<h2>調理場</h2>
+<p id="order"></p>
+<div id="cooking"></div>
+<button onclick="cook()">料理を提供する</button>
+</section>
+<section>
+<h2>冷蔵庫・仕入れ</h2>
+<div id="stock"></div>
+</section>
+<section>
+<h2>手がかり</h2>
+<div id="clues">まだ何も見つかっていない。</div>
+</section>
+<script>
+let money=1000,day=1,served=0,customer=null,steps=[];
+let inv={米:5,牛肉:3,玉ねぎ:3,タレ:3,卵:3,ねぎ:3,調味料:3};
+let recipes={
+牛丼:["米","牛肉","玉ねぎ","タレ"],
+チャーハン:["米","卵","ねぎ","調味料"]
+};
+let guests=[
+["無口な女性","牛丼","その人の影だけが動いている。"],
+["制服の少女","チャーハン","名札には明日の日付が書かれていた。"],
+["濡れた男","牛丼","外は晴れているのに、足元に水が広がる。"],
+["顔の見えない客","チャーハン","注文票には『昨日も来た』とある。"],
+["古い写真の女性","牛丼","壁の写真と同じ服を着ている。"]
+];
+function render(){
+document.getElementById("stats").textContent=
+"第"+day+"夜 ｜ 売上 "+money+"円 ｜ 提供 "+served+"皿";
+document.getElementById("stock").innerHTML=
+Object.entries(inv).map(([k,v])=>
+"<p>"+k+"："+v+"個 <button onclick=\"buy('"+k+"')\">仕入れ 100円</button></p>").join("");
+document.getElementById("cooking").innerHTML=
+customer?recipes[customer[1]].map((x,i)=>
+"<button onclick='add("+i+")'>"+x+"</button>").join(""):"";
+document.getElementById("order").textContent=
+customer?"注文："+customer[1]+" ｜ 入れた材料："+steps.join("、"):"注文待ち";
+}
+function buy(x){
+if(money<100){alert("お金が足りません");return}
+money-=100;inv[x]++;render();
+}
+function next(){
+if(customer){alert("先に料理を提供してね");return}
+customer=guests[Math.floor(Math.random()*guests.length)];
+steps=[];
+document.getElementById("story").textContent=
+customer[0]+"が来店した。\n「"+customer[1]+"をください」";
+render();
+}
+function add(i){
+if(!customer)return;
+let x=recipes[customer[1]][i];
+if(steps.includes(x)){alert("もう入れた材料だよ");return}
+if(inv[x]<=0){alert(x+"が足りない！仕入れてね");return}
+steps.push(x);render();
+}
+function cook(){
+if(!customer){alert("お客さんがいない");return}
+let need=recipes[customer[1]];
+if(!need.every(x=>steps.includes(x))){
+alert("材料がまだ足りない");return
+}
+need.forEach(x=>inv[x]--);
+money+=customer[1]=="牛丼"?500:450;
+served++;
+let clue=customer[2];
+document.getElementById("story").textContent=
+"料理を渡した。\n"+clue+"\n\n客は何も言わずに帰った。";
+let box=document.getElementById("clues");
+if(served===1)box.textContent="";
+box.innerHTML+="<p>・"+clue+"</p>";
+customer=null;steps=[];
+if(served%5===0){
+day++;
+document.getElementById("story").textContent+=
+"\n\n時計は午前2時に戻った。\nまた同じ夜が始まる。";
+}
+render();
+}
+render();
+</script>
+</body>
+</html>
