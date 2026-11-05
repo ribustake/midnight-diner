@@ -7,23 +7,23 @@
 <title>午前2時の食堂</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#1a100b;color:white;font-family:sans-serif;overflow:hidden;touch-action:none}
+body{margin:0;background:#21140e;color:white;font-family:sans-serif;overflow:hidden;touch-action:none}
 canvas{display:block;width:100vw;height:100dvh}
-#info{position:fixed;top:18px;left:12px;background:#24160cdd;border:1px solid #b98b57;border-radius:12px;padding:12px;font-size:14px}
-#joy{position:fixed;bottom:30px;left:25px;width:125px;height:125px;border:3px solid #cda36d;border-radius:50%;background:#49302199;touch-action:none}
-#dot{position:absolute;left:40px;top:40px;width:40px;height:40px;background:#d9b17d;border-radius:50%}
-#action{position:fixed;right:24px;bottom:48px;background:#66432c;color:white;border:2px solid #ddb583;border-radius:50%;width:90px;height:90px;font-size:17px}
-#notice{position:fixed;bottom:185px;left:15%;width:70%;text-align:center;background:#28180ddc;border-radius:10px;padding:10px}
+#hud{position:fixed;top:12px;left:12px;background:#24160cdd;border:1px solid #b78b55;border-radius:10px;padding:10px;font-size:13px;line-height:1.7}
+#joy{position:fixed;bottom:25px;left:22px;width:120px;height:120px;border:2px solid #d4ad7d;border-radius:50%;background:#49302199;touch-action:none}
+#dot{position:absolute;left:39px;top:39px;width:40px;height:40px;background:#e1b783;border-radius:50%}
+#act{position:fixed;right:24px;bottom:40px;width:90px;height:90px;border-radius:50%;background:#70472c;color:white;border:2px solid #e5bb83;font-size:17px}
+#msg{position:fixed;bottom:170px;left:15%;width:70%;text-align:center;background:#25170ddd;padding:10px;border-radius:9px}
 </style>
 </head>
 <body>
-<canvas id="scene"></canvas>
-<div id="info">🌙 午前2時の食堂<br>所持金：<span id="money">1000</span>円<br>左：移動　右：見回す</div>
-<div id="notice">厨房から営業を始めよう</div>
+<canvas id="game"></canvas>
+<div id="hud">🌙 午前2時の食堂<br>午前2:00 ☔ 雨<br>所持金：1000円<br>左：移動　右：見回す</div>
+<div id="msg">厨房で開店準備をしよう。</div>
 <div id="joy"><div id="dot"></div></div>
-<button id="action">調べる</button>
+<button id="act">調べる</button>
 <script>
-const c=document.getElementById("scene");
+const c=document.getElementById("game");
 const g=c.getContext("2d");
 const map=[
 "############",
@@ -39,90 +39,162 @@ const map=[
 "############"
 ];
 let x=5.5,y=5.5,a=-Math.PI/2;
-let money=1000,served=0;
-let moveX=0,moveY=0;
-const solid=(xx,yy)=>{
-let t=map[Math.floor(yy)]?.[Math.floor(xx)];
-return !t||t==="#"||t==="C";
-};
+let mx=0,my=0;
+let money=1000;
+let count=0;
+const objects=[
+{x:5,y:3.4,type:"cat"},
+{x:7,y:3.4,type:"bowls"},
+{x:2,y:2,type:"fridge"},
+{x:9,y:2,type:"stove"},
+{x:6,y:1.2,type:"lamp"}
+];
 function resize(){
 c.width=innerWidth;
 c.height=innerHeight;
 }
 resize();
 addEventListener("resize",resize);
+function solid(xx,yy){
+let t=map[Math.floor(yy)]?.[Math.floor(xx)];
+return !t||t==="#"||t==="C";
+}
+function sprite(o,sx,sz){
+let z=Math.max(8,sz);
+g.save();
+g.translate(sx,c.height*.5-z*.6);
+g.scale(z/100,z/100);
+function r(x,y,w,h,color){
+g.fillStyle=color;
+g.fillRect(x,y,w,h);
+}
+if(o.type==="cat"){
+r(-22,35,44,50,"#f5dfb4");
+r(-25,0,50,48,"#fff0cf");
+r(-23,-12,15,22,"#fff0cf");
+r(8,-12,15,22,"#fff0cf");
+r(-14,22,5,5,"#39251a");
+r(10,22,5,5,"#39251a");
+r(-5,33,10,5,"#d28b79");
+r(-22,65,44,9,"#bd3929");
+}
+if(o.type==="bowls"){
+for(let i=0;i<4;i++){
+r(-35,75-i*15,70,12,"#e8d6b7");
+r(-30,80-i*15,60,3,"#42617a");
+}
+}
+if(o.type==="fridge"){
+r(-35,-25,70,130,"#a09d93");
+r(-31,-20,62,120,"#bdb9ae");
+r(20,10,5,30,"#514b43");
+r(-31,45,62,5,"#69645c");
+}
+if(o.type==="stove"){
+r(-43,40,86,65,"#48413b");
+r(-43,35,86,10,"#b1a69a");
+r(-25,15,50,22,"#77736c");
+r(-15,2,30,15,"#b7b1a5");
+}
+if(o.type==="lamp"){
+r(-30,-35,60,65,"#56331d");
+r(-24,-30,48,55,"#ffe1a2");
+r(-4,-55,8,20,"#5a3b28");
+}
+g.restore();
+}
 function draw(){
 let w=c.width,h=c.height;
-let sky=g.createLinearGradient(0,0,0,h/2);
-sky.addColorStop(0,"#21150e");
-sky.addColorStop(1,"#805538");
-g.fillStyle=sky;
+let grad=g.createLinearGradient(0,0,0,h/2);
+grad.addColorStop(0,"#24150e");
+grad.addColorStop(1,"#94613c");
+g.fillStyle=grad;
 g.fillRect(0,0,w,h/2);
-let floor=g.createLinearGradient(0,h/2,0,h);
-floor.addColorStop(0,"#765138");
-floor.addColorStop(1,"#1d120d");
-g.fillStyle=floor;
+grad=g.createLinearGradient(0,h/2,0,h);
+grad.addColorStop(0,"#80583b");
+grad.addColorStop(1,"#24150e");
+g.fillStyle=grad;
 g.fillRect(0,h/2,w,h/2);
-const step=3;
+let depth=[];
+let step=3;
 for(let sx=0;sx<w;sx+=step){
-let ra=a+Math.atan((sx/w-.5)*1.35);
+let ra=a+Math.atan((sx/w-.5)*1.3);
 let dx=Math.cos(ra),dy=Math.sin(ra);
-let d=.02,hit=".";
-while(d<18){
-let xx=x+dx*d,yy=y+dy*d;
-hit=map[Math.floor(yy)]?.[Math.floor(xx)]||"#";
-if(hit!=="." )break;
-d+=.025;
+let d=.03,hit=".";
+while(d<20){
+hit=map[Math.floor(y+dy*d)]?.[Math.floor(x+dx*d)]||"#";
+if(hit!==".")break;
+d+=.035;
 }
-let dist=d*Math.cos(ra-a);
+let dist=Math.max(.1,d*Math.cos(ra-a));
+depth[Math.floor(sx/step)]=dist;
 let size=Math.min(h*3,h/(dist*.7));
 if(hit==="C")size*=.55;
-let top=h*.51-size*.5;
-let light=Math.max(.3,1-d/16);
-let rgb=hit==="C"?[164,106,61]:[146,98,61];
-g.fillStyle=`rgb(${rgb.map(v=>Math.floor(v*light)).join(",")})`;
+let top=h*.5-size*.5;
+let shade=Math.max(.3,1-d/18);
+let base=hit==="C"?[164,105,59]:[141,91,55];
+g.fillStyle="rgb("+base.map(v=>Math.floor(v*shade)).join(",")+")";
 g.fillRect(sx,top,step+1,size);
 if(hit==="C"){
-g.fillStyle="#b78a55";
-g.fillRect(sx,top,step+1,Math.max(3,size*.12));
+g.fillStyle="#c99a62";
+g.fillRect(sx,top,step+1,Math.max(3,size*.13));
 }else{
-g.fillStyle="#493020";
-g.fillRect(sx,top+size*.73,step+1,Math.max(3,size*.05));
+g.fillStyle="#553523";
+g.fillRect(sx,top+size*.7,step+1,Math.max(3,size*.05));
 }
 }
-g.fillStyle="#f5d39a";
-g.beginPath();
-g.arc(w*.5,h*.16,Math.min(30,h*.045),0,Math.PI*2);
-g.fill();
-g.fillStyle="#ffffff99";
+let visible=[];
+for(let o of objects){
+let dx=o.x-x,dy=o.y-y;
+let dist=Math.hypot(dx,dy);
+let ang=Math.atan2(dy,dx)-a;
+ang=Math.atan2(Math.sin(ang),Math.cos(ang));
+if(Math.abs(ang)<.6&&dist<12){
+let sx=w*(.5+Math.tan(ang)/1.3);
+let idx=Math.max(0,Math.min(depth.length-1,Math.floor(sx/step)));
+if(dist<depth[idx]+.4){
+visible.push({o,sx,dist});
+}
+}
+}
+visible.sort((a,b)=>b.dist-a.dist);
+for(let v of visible){
+sprite(v.o,v.sx,Math.min(h,h/(v.dist*.8)));
+}
+g.fillStyle="#fff4d7";
 g.font="22px sans-serif";
 g.fillText("+",w/2-7,h/2+7);
 }
 function frame(){
 let speed=.045;
-let nx=x+(Math.cos(a)*moveY-Math.sin(a)*moveX)*speed;
-let ny=y+(Math.sin(a)*moveY+Math.cos(a)*moveX)*speed;
+let nx=x+(Math.cos(a)*my-Math.sin(a)*mx)*speed;
+let ny=y+(Math.sin(a)*my+Math.cos(a)*mx)*speed;
 if(!solid(nx,y))x=nx;
 if(!solid(x,ny))y=ny;
 draw();
 requestAnimationFrame(frame);
 }
 frame();
-let joy=document.getElementById("joy");
-let dot=document.getElementById("dot");
+const joy=document.getElementById("joy");
+const dot=document.getElementById("dot");
 function stick(e){
 let r=joy.getBoundingClientRect();
 let dx=(e.clientX-r.left-r.width/2)/45;
 let dy=(e.clientY-r.top-r.height/2)/45;
 let len=Math.max(1,Math.hypot(dx,dy));
-moveX=dx/len;
-moveY=-dy/len;
-dot.style.transform=`translate(${moveX*35}px,${-moveY*35}px)`;
+mx=dx/len;
+my=-dy/len;
+dot.style.transform=`translate(${mx*35}px,${-my*35}px)`;
 }
-joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);stick(e)});
-joy.addEventListener("pointermove",e=>{if(e.buttons)stick(e)});
+joy.addEventListener("pointerdown",e=>{
+joy.setPointerCapture(e.pointerId);
+stick(e);
+});
+joy.addEventListener("pointermove",e=>{
+if(joy.hasPointerCapture(e.pointerId))stick(e);
+});
 function stop(){
-moveX=moveY=0;
+mx=my=0;
 dot.style.transform="";
 }
 joy.addEventListener("pointerup",stop);
@@ -140,12 +212,10 @@ last=e.clientX;
 });
 c.addEventListener("pointerup",()=>last=null);
 c.addEventListener("pointercancel",()=>last=null);
-document.getElementById("action").onclick=()=>{
-served++;
-money+=350;
-document.getElementById("money").textContent=money;
-document.getElementById("notice").textContent=
-served===3?"……誰もいない席から注文が聞こえた。":"料理を提供した！ +350円";
+document.getElementById("act").onclick=()=>{
+count++;
+document.getElementById("msg").textContent=
+count===3?"……誰もいない席から物音がした。":"厨房の設備を確認した。";
 };
 </script>
 </body>
