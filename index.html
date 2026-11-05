@@ -2,49 +2,151 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>午前2時の食堂</title>
 <style>
-body{margin:0;background:#21150e;color:white;font-family:sans-serif}
-canvas{display:block;width:100vw;height:100vh}
-#msg{position:fixed;top:20px;left:20px;background:#21150ecc;padding:15px;border-radius:10px}
+*{box-sizing:border-box}
+body{margin:0;background:#1a100b;color:white;font-family:sans-serif;overflow:hidden;touch-action:none}
+canvas{display:block;width:100vw;height:100dvh}
+#info{position:fixed;top:18px;left:12px;background:#24160cdd;border:1px solid #b98b57;border-radius:12px;padding:12px;font-size:14px}
+#joy{position:fixed;bottom:30px;left:25px;width:125px;height:125px;border:3px solid #cda36d;border-radius:50%;background:#49302199;touch-action:none}
+#dot{position:absolute;left:40px;top:40px;width:40px;height:40px;background:#d9b17d;border-radius:50%}
+#action{position:fixed;right:24px;bottom:48px;background:#66432c;color:white;border:2px solid #ddb583;border-radius:50%;width:90px;height:90px;font-size:17px}
+#notice{position:fixed;bottom:185px;left:15%;width:70%;text-align:center;background:#28180ddc;border-radius:10px;padding:10px}
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
-<div id="msg">🌙 午前2時の食堂<br>店内表示テスト</div>
+<canvas id="scene"></canvas>
+<div id="info">🌙 午前2時の食堂<br>所持金：<span id="money">1000</span>円<br>左：移動　右：見回す</div>
+<div id="notice">厨房から営業を始めよう</div>
+<div id="joy"><div id="dot"></div></div>
+<button id="action">調べる</button>
 <script>
-const c=document.getElementById("game");
-const ctx=c.getContext("2d");
-function draw(){
+const c=document.getElementById("scene");
+const g=c.getContext("2d");
+const map=[
+"############",
+"#..........#",
+"#..........#",
+"#..CCCCCC..#",
+"#..C....C..#",
+"#..C....C..#",
+"#..C....C..#",
+"#..CCCCCC..#",
+"#..........#",
+"#..........#",
+"############"
+];
+let x=5.5,y=5.5,a=-Math.PI/2;
+let money=1000,served=0;
+let moveX=0,moveY=0;
+const solid=(xx,yy)=>{
+let t=map[Math.floor(yy)]?.[Math.floor(xx)];
+return !t||t==="#"||t==="C";
+};
+function resize(){
 c.width=innerWidth;
 c.height=innerHeight;
-let w=c.width,h=c.height;
-ctx.fillStyle="#a5784b";
-ctx.fillRect(0,0,w,h);
-ctx.fillStyle="#39291f";
-ctx.beginPath();
-ctx.moveTo(0,h*.55);
-ctx.lineTo(w,h*.55);
-ctx.lineTo(w,h);
-ctx.lineTo(0,h);
-ctx.fill();
-ctx.fillStyle="#805333";
-ctx.fillRect(w*.15,h*.3,w*.7,h*.3);
-ctx.fillStyle="#c99a64";
-ctx.fillRect(w*.1,h*.55,w*.8,h*.08);
-ctx.fillStyle="#4a3326";
-ctx.fillRect(w*.15,h*.63,w*.7,h*.22);
-ctx.fillStyle="#ffdf9a";
-ctx.beginPath();
-ctx.arc(w*.5,h*.12,35,0,Math.PI*2);
-ctx.fill();
-ctx.fillStyle="white";
-ctx.font="bold 20px sans-serif";
-ctx.fillText("厨房のカウンター",w*.2,h*.5);
 }
+resize();
+addEventListener("resize",resize);
+function draw(){
+let w=c.width,h=c.height;
+let sky=g.createLinearGradient(0,0,0,h/2);
+sky.addColorStop(0,"#21150e");
+sky.addColorStop(1,"#805538");
+g.fillStyle=sky;
+g.fillRect(0,0,w,h/2);
+let floor=g.createLinearGradient(0,h/2,0,h);
+floor.addColorStop(0,"#765138");
+floor.addColorStop(1,"#1d120d");
+g.fillStyle=floor;
+g.fillRect(0,h/2,w,h/2);
+const step=3;
+for(let sx=0;sx<w;sx+=step){
+let ra=a+Math.atan((sx/w-.5)*1.35);
+let dx=Math.cos(ra),dy=Math.sin(ra);
+let d=.02,hit=".";
+while(d<18){
+let xx=x+dx*d,yy=y+dy*d;
+hit=map[Math.floor(yy)]?.[Math.floor(xx)]||"#";
+if(hit!=="." )break;
+d+=.025;
+}
+let dist=d*Math.cos(ra-a);
+let size=Math.min(h*3,h/(dist*.7));
+if(hit==="C")size*=.55;
+let top=h*.51-size*.5;
+let light=Math.max(.3,1-d/16);
+let rgb=hit==="C"?[164,106,61]:[146,98,61];
+g.fillStyle=`rgb(${rgb.map(v=>Math.floor(v*light)).join(",")})`;
+g.fillRect(sx,top,step+1,size);
+if(hit==="C"){
+g.fillStyle="#b78a55";
+g.fillRect(sx,top,step+1,Math.max(3,size*.12));
+}else{
+g.fillStyle="#493020";
+g.fillRect(sx,top+size*.73,step+1,Math.max(3,size*.05));
+}
+}
+g.fillStyle="#f5d39a";
+g.beginPath();
+g.arc(w*.5,h*.16,Math.min(30,h*.045),0,Math.PI*2);
+g.fill();
+g.fillStyle="#ffffff99";
+g.font="22px sans-serif";
+g.fillText("+",w/2-7,h/2+7);
+}
+function frame(){
+let speed=.045;
+let nx=x+(Math.cos(a)*moveY-Math.sin(a)*moveX)*speed;
+let ny=y+(Math.sin(a)*moveY+Math.cos(a)*moveX)*speed;
+if(!solid(nx,y))x=nx;
+if(!solid(x,ny))y=ny;
 draw();
-addEventListener("resize",draw);
+requestAnimationFrame(frame);
+}
+frame();
+let joy=document.getElementById("joy");
+let dot=document.getElementById("dot");
+function stick(e){
+let r=joy.getBoundingClientRect();
+let dx=(e.clientX-r.left-r.width/2)/45;
+let dy=(e.clientY-r.top-r.height/2)/45;
+let len=Math.max(1,Math.hypot(dx,dy));
+moveX=dx/len;
+moveY=-dy/len;
+dot.style.transform=`translate(${moveX*35}px,${-moveY*35}px)`;
+}
+joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);stick(e)});
+joy.addEventListener("pointermove",e=>{if(e.buttons)stick(e)});
+function stop(){
+moveX=moveY=0;
+dot.style.transform="";
+}
+joy.addEventListener("pointerup",stop);
+joy.addEventListener("pointercancel",stop);
+let last=null;
+c.addEventListener("pointerdown",e=>{
+last=e.clientX;
+c.setPointerCapture(e.pointerId);
+});
+c.addEventListener("pointermove",e=>{
+if(last!==null){
+a+=(e.clientX-last)*.006;
+last=e.clientX;
+}
+});
+c.addEventListener("pointerup",()=>last=null);
+c.addEventListener("pointercancel",()=>last=null);
+document.getElementById("action").onclick=()=>{
+served++;
+money+=350;
+document.getElementById("money").textContent=money;
+document.getElementById("notice").textContent=
+served===3?"……誰もいない席から注文が聞こえた。":"料理を提供した！ +350円";
+};
 </script>
 </body>
 </html>
